@@ -19,6 +19,10 @@ abstract contract Lockable is ERC20, Ownable {
 	event Unlock(address holder, uint256 unlocked, uint256 remains);
 
 	function lock(address holder, uint256 amount, uint startAt, uint interval, uint ratio) public onlyOwner() returns (bool) {
+		require(amount > 10 ** 18, "Invalid amount.");
+		require(interval > 0, "Invalid interval.");
+		require(0 < ratio && ratio <= 100, "Invalid ratio.");
+
 		uint256 perUnlock = Math.ceilDiv(amount / (10 ** (18 + 2)), ratio) * 10 ** 18;
 		Locked memory newLock = Locked(startAt, interval, amount, perUnlock);
 		locked[holder] = newLock;
@@ -33,7 +37,7 @@ abstract contract Lockable is ERC20, Ownable {
 		require(locked[holder].next < block.timestamp, "Locking duration has not expired!");
 
 		unchecked {
-			uint n = Math.ceilDiv(block.timestamp - locked[holder].next, locked[holder].interval) + 1;
+			uint n = Math.ceilDiv(block.timestamp - locked[holder].next, locked[holder].interval);
 			uint256 toUnlock = locked[holder].perUnlock * n;
 			if (toUnlock > locked[holder].remains) toUnlock = locked[holder].remains;
 			uint256 remains = locked[holder].remains - toUnlock;
